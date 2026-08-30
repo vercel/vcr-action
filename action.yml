@@ -1,0 +1,50 @@
+name: "Log in to Vercel Container Registry"
+description: "Log in to the Vercel Container Registry (vcr.vercel.com) with Docker, Podman, and Buildah."
+author: "Vercel"
+branding:
+  icon: "log-in"
+  color: "black"
+
+inputs:
+  team:
+    description: >-
+      Vercel team ID (team_xxxxxxxx). The action exchanges the GitHub Actions
+      OIDC token for a short-lived Vercel access token scoped to this team
+      (requires `id-token: write` permission).
+    required: true
+  audience:
+    description: >-
+      Custom audience for the GitHub OIDC token, if your Vercel team's OIDC
+      policy defines one.
+    required: false
+  policy:
+    description: >-
+      OIDC policy ID to disambiguate between multiple matching policies.
+    required: false
+  registry:
+    description: "Registry host to log in to."
+    required: false
+    default: "vcr.vercel.com"
+  logout:
+    description: "Log out from the registry when the job completes."
+    required: false
+    default: "true"
+  revoke:
+    description: "Revoke the Vercel access token when the job completes."
+    required: false
+    default: "true"
+
+outputs:
+  registry:
+    description: "Registry host that was logged in to."
+  engines:
+    description: >-
+      Newline-separated list of container engines that were logged in
+      (docker, podman, buildah). Only engines present on the runner are
+      logged in.
+
+runs:
+  using: "node24"
+  main: "dist/main.cjs"
+  post: "dist/post.cjs"
+  post-if: "always()"
