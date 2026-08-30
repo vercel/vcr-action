@@ -4,10 +4,10 @@ import { which } from "@actions/io";
 import {
   DEFAULT_REGISTRY,
   DEFAULT_VERCEL_API,
-  ENGINES,
   type Engine,
   buildExchangeBody,
   buildLoginArgs,
+  parseEnginesInput,
   serializeEngines,
 } from "./lib";
 
@@ -27,19 +27,16 @@ async function main(): Promise<void> {
     );
   }
 
-  // ----- Detect container engines ------------------------------------------------
-  const engines: Engine[] = [];
-  for (const engine of ENGINES) {
-    if (await which(engine, false)) {
-      engines.push(engine);
+  // ----- Validate container engines ------------------------------------------------
+  const engines = parseEnginesInput(core.getInput("engines"));
+  for (const engine of engines) {
+    if (!(await which(engine, false))) {
+      throw new Error(
+        `Engine "${engine}" was requested but was not found on the PATH.`,
+      );
     }
   }
-  if (engines.length === 0) {
-    throw new Error(
-      "No container engine found. Install docker, podman, or buildah.",
-    );
-  }
-  core.info(`Detected container engine(s): ${engines.join(", ")}.`);
+  core.info(`Logging in with: ${engines.join(", ")}.`);
 
   // ----- Authenticate ----------------------------------------------------------
   let githubOidcToken: string;

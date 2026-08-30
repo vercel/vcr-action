@@ -21,6 +21,13 @@ inputs:
     description: >-
       OIDC policy ID to disambiguate between multiple matching policies.
     required: false
+  engines:
+    description: >-
+      Container engines to log in with, as a comma-, space-, or
+      newline-separated list. Valid values: docker, podman, buildah. Every
+      requested engine must be present on the runner.
+    required: false
+    default: "docker"
   registry:
     description: "Registry host to log in to."
     required: false
@@ -40,8 +47,7 @@ outputs:
   engines:
     description: >-
       Newline-separated list of container engines that were logged in
-      (docker, podman, buildah). Only engines present on the runner are
-      logged in.
+      (docker, podman, buildah).
 
 runs:
   using: "node24"

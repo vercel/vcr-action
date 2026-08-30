@@ -5,6 +5,7 @@ import {
   buildLoginArgs,
   buildRevokeBody,
   parseEngines,
+  parseEnginesInput,
   serializeEngines,
 } from "../src/lib";
 
@@ -57,6 +58,31 @@ describe("buildLoginArgs", () => {
       "--password-stdin",
       "vcr.vercel.com",
     ]);
+  });
+});
+
+describe("parseEnginesInput", () => {
+  it("splits on commas, spaces, and newlines, and dedupes", () => {
+    expect(parseEnginesInput("docker, podman\nbuildah docker")).toEqual([
+      "docker",
+      "podman",
+      "buildah",
+    ]);
+  });
+
+  it("is case-insensitive", () => {
+    expect(parseEnginesInput("Docker")).toEqual(["docker"]);
+  });
+
+  it("defaults to docker for empty input", () => {
+    expect(parseEnginesInput("")).toEqual(["docker"]);
+    expect(parseEnginesInput(" \n , ")).toEqual(["docker"]);
+  });
+
+  it("rejects unknown engines", () => {
+    expect(() => parseEnginesInput("docker nerdctl")).toThrow(
+      /Unknown engine "nerdctl".*docker, podman, buildah/,
+    );
   });
 });
 
