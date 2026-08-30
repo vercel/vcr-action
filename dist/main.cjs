@@ -19832,6 +19832,24 @@ function buildExchangeBody(options) {
   }
   return body;
 }
+function parseEnginesInput(input) {
+  const requested = [
+    ...new Set(
+      input.split(/[\s,]+/).map((engine) => engine.trim().toLowerCase()).filter((engine) => engine.length > 0)
+    )
+  ];
+  if (requested.length === 0) {
+    return ["docker"];
+  }
+  for (const engine of requested) {
+    if (!ENGINES.includes(engine)) {
+      throw new Error(
+        `Unknown engine "${engine}" in the 'engines' input. Valid values: ${ENGINES.join(", ")}.`
+      );
+    }
+  }
+  return requested;
+}
 function buildLoginArgs(options) {
   return [
     "login",
@@ -19858,18 +19876,15 @@ async function main() {
       `The 'team' input ("${team}") does not look like a Vercel team ID (team_xxxxxxxx). The registry login requires the team ID, not the slug.`
     );
   }
-  const engines = [];
-  for (const engine of ENGINES) {
-    if (await (0, import_io.which)(engine, false)) {
-      engines.push(engine);
+  const engines = parseEnginesInput(core.getInput("engines"));
+  for (const engine of engines) {
+    if (!await (0, import_io.which)(engine, false)) {
+      throw new Error(
+        `Engine "${engine}" was requested but was not found on the PATH.`
+      );
     }
   }
-  if (engines.length === 0) {
-    throw new Error(
-      "No container engine found. Install docker, podman, or buildah."
-    );
-  }
-  core.info(`Detected container engine(s): ${engines.join(", ")}.`);
+  core.info(`Logging in with: ${engines.join(", ")}.`);
   let githubOidcToken;
   try {
     githubOidcToken = await core.getIDToken(audience || void 0);

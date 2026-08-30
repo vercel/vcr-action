@@ -33,6 +33,28 @@ export function buildRevokeBody(token: string): URLSearchParams {
   });
 }
 
+export function parseEnginesInput(input: string): Engine[] {
+  const requested = [
+    ...new Set(
+      input
+        .split(/[\s,]+/)
+        .map((engine) => engine.trim().toLowerCase())
+        .filter((engine) => engine.length > 0),
+    ),
+  ];
+  if (requested.length === 0) {
+    return ["docker"];
+  }
+  for (const engine of requested) {
+    if (!(ENGINES as readonly string[]).includes(engine)) {
+      throw new Error(
+        `Unknown engine "${engine}" in the 'engines' input. Valid values: ${ENGINES.join(", ")}.`,
+      );
+    }
+  }
+  return requested as Engine[];
+}
+
 export function buildLoginArgs(options: {
   registry: string;
   team: string;

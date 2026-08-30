@@ -104,6 +104,7 @@ jobs:
         with:
           team: team_test
           registry: localhost:5000
+          engines: docker podman buildah
 
       - name: Verify outputs and credentials
         env:
@@ -142,6 +143,21 @@ jobs:
             curl -fsu team_test:s3cret "http://localhost:5000/v2/acme/web/$repo/tags/list" \
               | jq -e '.tags == ["latest"]'
           done
+
+      - name: Log in with an unknown engine (expect failure)
+        id: bad-engine
+        continue-on-error: true
+        uses: ./
+        env:
+          VERCEL_API_ORIGIN: http://127.0.0.1:8411
+        with:
+          team: team_test
+          registry: localhost:5000
+          engines: nerdctl
+
+      - name: Verify unknown engine failed
+        run: |
+          [[ "${{ steps.bad-engine.outcome }}" == "failure" ]]
 
   no-credentials:
     name: Fails without credentials

@@ -52,8 +52,9 @@ jobs:
 | ------------ | -------- | ------------------------ | --------------------------------------------------------------------------- |
 | `team`       | yes      |                          | Vercel team ID (`team_...`) used for the token exchange and registry login. |
 | `audience`   | no       |                          | Custom OIDC audience, if your Vercel OIDC policy defines one.               |
-| `policy`     | no       |                          | OIDC policy ID, to disambiguate between multiple matching policies.         |
-| `registry`   | no       | `vcr.vercel.com`         | Registry host.                                                              |
+| `policy`     | no       |                          | OIDC policy ID, to disambiguate between multiple matching policies.          |
+| `engines`    | no       | `docker`                 | Engines to log in with (comma-, space-, or newline-separated): `docker`, `podman`, `buildah`. |
+| `registry`   | no       | `vcr.vercel.com`         | Registry host.                                                               |
 | `logout`     | no       | `true`                   | Log out from the registry when the job completes.                            |
 | `revoke`     | no       | `true`                   | Revoke the access token when the job completes.                              |
 
@@ -81,6 +82,11 @@ with `push: true`):
 **Podman**:
 
 ```yaml
+- uses: vercel/vcr-login-action@v1
+  with:
+    team: ${{ vars.VERCEL_TEAM_ID }}
+    engines: podman
+
 - run: |
     podman build --platform linux/amd64 -t vcr.vercel.com/acme/web/my-app:latest .
     podman push vcr.vercel.com/acme/web/my-app:latest
@@ -89,6 +95,11 @@ with `push: true`):
 **Buildah**:
 
 ```yaml
+- uses: vercel/vcr-login-action@v1
+  with:
+    team: ${{ vars.VERCEL_TEAM_ID }}
+    engines: buildah
+
 - run: |
     buildah build --platform linux/amd64 -t vcr.vercel.com/acme/web/my-app:latest .
     buildah push vcr.vercel.com/acme/web/my-app:latest
@@ -113,4 +124,4 @@ pnpm build
 - Images must target `linux/amd64` to use in Sandbox; other platforms push
   successfully but are not optimized by Vercel.
 - Podman and Buildah share a credential store, so logging in with one also
-  logs in the other; the action logs in with both when both are present.
+  logs in the other.
