@@ -31,11 +31,13 @@ jobs:
           team: ${{ vars.VERCEL_TEAM_ID }}
 
       - name: Build and push
-        run: |
-          docker buildx build --platform linux/amd64 \
-            -t vcr.vercel.com/<team-slug>/<project-slug>/my-app:latest \
-            --output type=image,push=true,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true \
-            .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          provenance: false
+          tags: vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest
+          outputs: type=image,push=true,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true
 ```
 
 ## Prerequisites
@@ -68,15 +70,15 @@ jobs:
 ## Pushing with each engine
 
 The repository is created automatically on first push. Repository references
-have the form `vcr.vercel.com/<team-slug>/<project-slug>/<name>:<tag>`.
+have the form `vcr.vercel.com/<team-slug>/<project-slug>/<repo>:<tag>`.
 
 **Docker** (or [docker/build-push-action](https://github.com/docker/build-push-action)
 with `push: true`):
 
 ```yaml
 - run: |
-    docker build --platform linux/amd64 -t vcr.vercel.com/acme/web/my-app:latest .
-    docker push vcr.vercel.com/acme/web/my-app:latest
+    docker build --platform linux/amd64 -t vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest .
+    docker push vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest
 ```
 
 **Podman**:
@@ -88,8 +90,8 @@ with `push: true`):
     engines: podman
 
 - run: |
-    podman build --platform linux/amd64 -t vcr.vercel.com/acme/web/my-app:latest .
-    podman push vcr.vercel.com/acme/web/my-app:latest
+    podman build --platform linux/amd64 -t vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest .
+    podman push vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest
 ```
 
 **Buildah**:
@@ -101,8 +103,8 @@ with `push: true`):
     engines: buildah
 
 - run: |
-    buildah build --platform linux/amd64 -t vcr.vercel.com/acme/web/my-app:latest .
-    buildah push vcr.vercel.com/acme/web/my-app:latest
+    buildah build --platform linux/amd64 -t vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest .
+    buildah push vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest
 ```
 
 ## Development
@@ -120,7 +122,7 @@ pnpm build
 
 - Pushed images can be used with
   [Vercel Sandbox](https://vercel.com/docs/vercel-sandbox), referenced as
-  `<name>:<tag>` within the same project.
+  `<repo>:<tag>` within the same project.
 - Images must target `linux/amd64` to use in Sandbox; other platforms push
   successfully but are not optimized by Vercel.
 - Podman and Buildah share a credential store, so logging in with one also
