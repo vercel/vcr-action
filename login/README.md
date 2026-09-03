@@ -42,8 +42,9 @@ jobs:
 
 ## Prerequisites
 
-1. Create an OIDC policy on your Vercel team that grants read-write access to the
-   Vercel Container Registry (a VCR policy).
+1. [Create an OIDC policy](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fsettings%2Fbuild-and-deployment%3FaddOidcPolicy%3Dvcr&title=Add+a+VCR+OIDC+Policy)
+   on your Vercel team that grants read-write access to the Vercel Container
+   Registry (a VCR policy). Ensure your OIDC policy has access the project that the repository is in.
 2. Store your Vercel team ID (`team_...`) as a repository **variable**
    (e.g. `VERCEL_TEAM_ID`) and give the workflow (or job) `id-token: write`
    permission.
