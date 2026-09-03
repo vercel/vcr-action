@@ -1,5 +1,5 @@
 name: "Log in to Vercel Container Registry"
-description: "Log in to the Vercel Container Registry (vcr.vercel.com) with Docker, Podman, and Buildah."
+description: "Log in to Vercel Container Registry (vcr.vercel.com) with Docker, Podman, and Buildah."
 author: "Vercel"
 branding:
   icon: "log-in"

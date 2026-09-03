@@ -4,6 +4,7 @@ import { which } from "@actions/io";
 import {
   DEFAULT_REGISTRY,
   DEFAULT_VERCEL_API,
+  ENGINE_INSTALL_HINTS,
   type Engine,
   buildExchangeBody,
   buildLoginArgs,
@@ -32,7 +33,9 @@ async function main(): Promise<void> {
   for (const engine of engines) {
     if (!(await which(engine, false))) {
       throw new Error(
-        `Engine "${engine}" was requested but was not found on the PATH.`,
+        `Engine "${engine}" was requested but was not found on the PATH. ` +
+          `Install it first (${ENGINE_INSTALL_HINTS[engine]}); ` +
+          "GitHub-hosted Ubuntu runners include docker, podman, and buildah.",
       );
     }
   }
@@ -128,7 +131,7 @@ async function exchangeToken(options: {
 
   throw new Error(
     "Token exchange with Vercel failed. Check that your team has an OIDC policy " +
-      `that grants access to the Vercel Container Registry and matches this ` +
+      `that grants access to Vercel Container Registry and matches this ` +
       `repository and workflow. (${lastError})`,
   );
 }

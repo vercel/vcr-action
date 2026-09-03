@@ -6,6 +6,12 @@ export const VCR_APP_ID = "cl_inrfNy8noLlhRrGbPEm0z47woXNcJVZ0";
 export const ENGINES = ["docker", "podman", "buildah"] as const;
 export type Engine = (typeof ENGINES)[number];
 
+export const ENGINE_INSTALL_HINTS: Record<Engine, string> = {
+  docker: "https://docs.docker.com/engine/install/",
+  podman: "sudo apt-get install podman",
+  buildah: "sudo apt-get install buildah",
+};
+
 export function buildExchangeBody(options: {
   team: string;
   githubOidcToken: string;
