@@ -19817,7 +19817,13 @@ var import_io = __toESM(require_io(), 1);
 var DEFAULT_REGISTRY = "vcr.vercel.com";
 var DEFAULT_VERCEL_API = "https://api.vercel.com";
 var VCR_APP_ID = "cl_inrfNy8noLlhRrGbPEm0z47woXNcJVZ0";
+var VCR_POLICY_URL = "https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fsettings%2Fbuild-and-deployment%3FaddOidcPolicy%3Dvcr&title=Add+a+VCR+OIDC+Policy";
 var ENGINES = ["docker", "podman", "buildah"];
+var ENGINE_INSTALL_HINTS = {
+  docker: "https://docs.docker.com/engine/install/",
+  podman: "sudo apt-get install podman",
+  buildah: "sudo apt-get install buildah"
+};
 function buildExchangeBody(options) {
   const body = new URLSearchParams({
     grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
@@ -19880,7 +19886,7 @@ async function main() {
   for (const engine of engines) {
     if (!await (0, import_io.which)(engine, false)) {
       throw new Error(
-        `Engine "${engine}" was requested but was not found on the PATH.`
+        `Engine "${engine}" was requested but was not found on the PATH. Install it first (${ENGINE_INSTALL_HINTS[engine]}); GitHub-hosted Ubuntu runners include docker, podman, and buildah.`
       );
     }
   }
@@ -19954,7 +19960,7 @@ async function exchangeToken(options) {
     await sleep(1e3 * attempt);
   }
   throw new Error(
-    `Token exchange with Vercel failed. Check that your team has an OIDC policy that grants access to the Vercel Container Registry and matches this repository and workflow. (${lastError})`
+    `Token exchange with Vercel failed. Check that your team has an OIDC policy that grants access to Vercel Container Registry and matches this repository and workflow \u2014 create one at ${VCR_POLICY_URL} (${lastError})`
   );
 }
 function sleep(ms) {

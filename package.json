@@ -1,6 +1,6 @@
 {
   "name": "vcr-action",
-  "description": "GitHub Actions for the Vercel Container Registry",
+  "description": "GitHub Actions for Vercel Container Registry",
   "version": "0.1.0",
   "private": true,
   "type": "module",

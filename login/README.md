@@ -1,5 +1,8 @@
 # Log in to Vercel Container Registry
 
+Part of [`vercel/vcr-action`](../README.md), a collection of GitHub Actions
+for Vercel Container Registry.
+
 GitHub Action that logs in to
 [Vercel Container Registry](https://vercel.com/docs/container-registry)
 (`vcr.vercel.com`) with Docker, Podman, and Buildah.
@@ -43,7 +46,7 @@ jobs:
 ## Prerequisites
 
 1. [Create an OIDC policy](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fsettings%2Fbuild-and-deployment%3FaddOidcPolicy%3Dvcr&title=Add+a+VCR+OIDC+Policy)
-   on your Vercel team that grants read-write access to the Vercel Container
+   on your Vercel team that grants read-write access to Vercel Container
    Registry (a VCR policy). Ensure your OIDC policy has access the project that the repository is in.
 2. Store your Vercel team ID (`team_...`) as a repository **variable**
    (e.g. `VERCEL_TEAM_ID`) and give the workflow (or job) `id-token: write`
@@ -78,8 +81,10 @@ with `push: true`):
 
 ```yaml
 - run: |
-    docker build --platform linux/amd64 -t vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest .
-    docker push vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest
+    docker build --platform linux/amd64 -t "$IMAGE" .
+    docker push "$IMAGE"
+  env:
+    IMAGE: vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest
 ```
 
 **Podman**:
@@ -91,8 +96,10 @@ with `push: true`):
     engines: podman
 
 - run: |
-    podman build --platform linux/amd64 -t vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest .
-    podman push vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest
+    podman build --platform linux/amd64 -t "$IMAGE" .
+    podman push "$IMAGE"
+  env:
+    IMAGE: vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest
 ```
 
 **Buildah**:
@@ -104,8 +111,10 @@ with `push: true`):
     engines: buildah
 
 - run: |
-    buildah build --platform linux/amd64 -t vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest .
-    buildah push vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest
+    buildah build --platform linux/amd64 -t "$IMAGE" .
+    buildah push "$IMAGE"
+  env:
+    IMAGE: vcr.vercel.com/<team-slug>/<project-slug>/<repo>:latest
 ```
 
 ## Notes
