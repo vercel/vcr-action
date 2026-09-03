@@ -5,6 +5,7 @@ import {
   DEFAULT_REGISTRY,
   DEFAULT_VERCEL_API,
   ENGINE_INSTALL_HINTS,
+  VCR_POLICY_URL,
   type Engine,
   buildExchangeBody,
   buildLoginArgs,
@@ -131,8 +132,8 @@ async function exchangeToken(options: {
 
   throw new Error(
     "Token exchange with Vercel failed. Check that your team has an OIDC policy " +
-      `that grants access to Vercel Container Registry and matches this ` +
-      `repository and workflow. (${lastError})`,
+      "that grants access to Vercel Container Registry and matches this " +
+      `repository and workflow — create one at ${VCR_POLICY_URL} (${lastError})`,
   );
 }
 

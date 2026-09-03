@@ -3,6 +3,9 @@ export const DEFAULT_VERCEL_API = "https://api.vercel.com";
 
 export const VCR_APP_ID = "cl_inrfNy8noLlhRrGbPEm0z47woXNcJVZ0";
 
+export const VCR_POLICY_URL =
+  "https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fsettings%2Fbuild-and-deployment%3FaddOidcPolicy%3Dvcr&title=Add+a+VCR+OIDC+Policy";
+
 export const ENGINES = ["docker", "podman", "buildah"] as const;
 export type Engine = (typeof ENGINES)[number];
 
