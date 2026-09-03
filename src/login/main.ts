@@ -9,7 +9,7 @@ import {
   buildLoginArgs,
   parseEnginesInput,
   serializeEngines,
-} from "./lib";
+} from "../lib";
 
 async function main(): Promise<void> {
   // ----- Inputs --------------------------------------------------------------

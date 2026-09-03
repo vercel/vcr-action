@@ -1,17 +1,17 @@
 {
-  "name": "vcr-login-action",
-  "description": "GitHub Action to log in to the Vercel Container Registry with Docker, Podman, and Buildah",
+  "name": "vcr-action",
+  "description": "GitHub Actions for the Vercel Container Registry",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/main.ts src/post.ts --bundle --platform=node --target=node20 --format=cjs --outdir=dist --out-extension:.js=.cjs",
+    "build": "esbuild src/login/main.ts src/login/post.ts --bundle --platform=node --target=node20 --format=cjs --outdir=login/dist --out-extension:.js=.cjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/vercel/vcr-login-action.git"
+    "url": "https://github.com/vercel/vcr-action.git"
   },
   "license": "MIT",
   "dependencies": {

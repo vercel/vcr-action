@@ -32,8 +32,8 @@ jobs:
 
       - name: Verify dist is up to date
         run: |
-          if ! git diff --exit-code dist/; then
-            echo "::error::dist/ is out of date. Run 'pnpm build' and commit the result."
+          if ! git diff --exit-code login/dist/; then
+            echo "::error::login/dist/ is out of date. Run 'pnpm build' and commit the result."
             exit 1
           fi
 
@@ -98,7 +98,7 @@ jobs:
 
       - name: Log in with the action
         id: login
-        uses: ./
+        uses: ./login
         env:
           VERCEL_API_ORIGIN: http://127.0.0.1:8411
         with:
@@ -147,7 +147,7 @@ jobs:
       - name: Log in with an unknown engine (expect failure)
         id: bad-engine
         continue-on-error: true
-        uses: ./
+        uses: ./login
         env:
           VERCEL_API_ORIGIN: http://127.0.0.1:8411
         with:
@@ -168,7 +168,7 @@ jobs:
       - name: Log in without OIDC permission (expect failure)
         id: no-creds
         continue-on-error: true
-        uses: ./
+        uses: ./login
         env:
           VERCEL_API_ORIGIN: http://127.0.0.1:8411
         with:
