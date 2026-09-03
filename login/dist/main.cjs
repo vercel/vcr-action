@@ -19808,7 +19808,7 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
   }
 });
 
-// src/main.ts
+// src/login/main.ts
 var core = __toESM(require_core(), 1);
 var import_exec = __toESM(require_exec(), 1);
 var import_io = __toESM(require_io(), 1);
@@ -19863,7 +19863,7 @@ function serializeEngines(engines) {
   return engines.join(" ");
 }
 
-// src/main.ts
+// src/login/main.ts
 async function main() {
   const team = core.getInput("team", { required: true });
   const registry = core.getInput("registry") || DEFAULT_REGISTRY;

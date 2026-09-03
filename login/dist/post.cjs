@@ -1,6 +1,6 @@
 "use strict";
 
-// src/post.ts
+// src/login/post.ts
 var import_node_child_process = require("node:child_process");
 
 // src/lib.ts
@@ -23,7 +23,7 @@ function parseEngines(state) {
   );
 }
 
-// src/post.ts
+// src/login/post.ts
 async function post() {
   const logout = (process.env.INPUT_LOGOUT || "true").trim().toLowerCase();
   const registry = process.env.STATE_loggedInRegistry;

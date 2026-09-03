@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { DEFAULT_VERCEL_API, buildRevokeBody, parseEngines } from "./lib";
+import { DEFAULT_VERCEL_API, buildRevokeBody, parseEngines } from "../lib";
 
 async function post(): Promise<void> {
   const logout = (process.env.INPUT_LOGOUT || "true").trim().toLowerCase();
