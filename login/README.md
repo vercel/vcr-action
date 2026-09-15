@@ -71,6 +71,9 @@ jobs:
 | `registry` | Registry host that was logged in to.                                             |
 | `engines`  | Newline-separated list of engines that were logged in (docker, podman, buildah). |
 
+Use [`wait-for-optimized-image`](../wait-for-optimized-image/README.md) to
+wait for a pushed image to become ready before retagging it.
+
 ## Pushing with each engine
 
 The repository is created automatically on first push. Repository references
