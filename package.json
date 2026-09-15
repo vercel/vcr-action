@@ -5,7 +5,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/login/main.ts src/login/post.ts --bundle --platform=node --target=node20 --format=cjs --outdir=login/dist --out-extension:.js=.cjs",
+    "build": "pnpm build:login && pnpm build:wait-for-optimized-image",
+    "build:login": "esbuild src/login/main.ts src/login/post.ts --bundle --platform=node --target=node20 --format=cjs --outdir=login/dist --out-extension:.js=.cjs",
+    "build:wait-for-optimized-image": "esbuild src/wait-for-optimized-image/main.ts src/wait-for-optimized-image/post.ts --bundle --platform=node --target=node20 --format=cjs --outdir=wait-for-optimized-image/dist --out-extension:.js=.cjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

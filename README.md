@@ -25,6 +25,29 @@ Log in to VCR with Docker, Podman, or Buildah using GitHub OIDC:
 
 **[Full documentation for `login` →](login/README.md)**
 
+### `vercel/vcr-action/wait-for-optimized-image`
+
+Wait for a pushed image to be optimized before promoting its tag:
+
+```yaml
+- name: Wait for optimization
+  id: optimized
+  uses: vercel/vcr-action/wait-for-optimized-image@v1
+  with:
+    image: ${{ env.IMAGE }}
+    timeout-seconds: 600
+```
+
+Pass the same full `vcr.vercel.com/<team>/<project>/<repo>:<tag>` reference
+used by Docker. Alternatively, provide `team`, `project`, `repository`, and
+`tag` together; the two input modes are mutually exclusive.
+
+Uses GitHub OIDC (`id-token: write`) to obtain its own short-lived token and
+returns the optimized image's `digest` and `image-id`. Use a unique tag for
+the push, then retag the locally built image after optimization succeeds.
+
+**[Full login → push → wait → retag example and documentation →](wait-for-optimized-image/README.md)**
+
 ## Development
 
 TypeScript source lives in `src/`; each action's bundled output lives in

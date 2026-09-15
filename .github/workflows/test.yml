@@ -32,8 +32,8 @@ jobs:
 
       - name: Verify dist is up to date
         run: |
-          if ! git diff --exit-code login/dist/; then
-            echo "::error::login/dist/ is out of date. Run 'pnpm build' and commit the result."
+          if ! git diff --exit-code -- login/dist/ wait-for-optimized-image/dist/; then
+            echo "::error::Action dist files are out of date. Run 'pnpm build' and commit the result."
             exit 1
           fi
 
@@ -46,21 +46,63 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Start a mock Vercel token-exchange endpoint
+      - name: Start a mock Vercel API
         run: |
           cat > /tmp/mock-exchange.py <<'PY'
+          import base64
+          import json
           from http.server import BaseHTTPRequestHandler, HTTPServer
+          from urllib.parse import parse_qs, urlsplit
+          from urllib.request import Request, urlopen
 
           class Handler(BaseHTTPRequestHandler):
+              tag_requests = 0
+              token_requests = 0
+
               def do_POST(self):
                   length = int(self.headers.get("Content-Length", 0))
                   body = self.rfile.read(length).decode()
                   if self.path.endswith("/revoke"):
                       self._send(b"{}", 200)
                       return
-                  ok = "subject_token=" in body and "team_id_or_slug=team_test" in body
-                  resp = b'{"access_token":"s3cret"}' if ok else b'{"error":"invalid_request"}'
+                  params = parse_qs(body)
+                  ok = "subject_token" in params and params.get("team_id_or_slug") in (["team_test"], ["acme"])
+                  Handler.token_requests += 1
+                  token = "s3cret" if Handler.token_requests == 1 else "wait-secret"
+                  resp = json.dumps({"access_token": token} if ok else {"error": "invalid_request"}).encode()
                   self._send(resp, 200 if ok else 400)
+
+              def do_GET(self):
+                  url = urlsplit(self.path)
+                  if self.headers.get("Authorization") != "Bearer wait-secret":
+                      self._send(b'{}', 401)
+                      return
+                  if (url.path != "/v1/vcr/repository/docker-image/tags/latest"
+                      or parse_qs(url.query) not in (
+                          {"teamId": ["team_test"], "projectId": ["prj_test"]},
+                          {"slug": ["acme"], "projectId": ["web"]},
+                      )):
+                      self._send(b'{}', 400)
+                      return
+                  # Return the real pushed digest with simulated optimization progress.
+                  auth = base64.b64encode(b"team_test:s3cret").decode()
+                  request = Request(
+                      "http://localhost:5000/v2/acme/web/docker-image/manifests/latest",
+                      method="HEAD",
+                      headers={
+                          "Authorization": "Basic " + auth,
+                          "Accept": "application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json",
+                      },
+                  )
+                  with urlopen(request, timeout=10) as manifest:
+                      digest = manifest.headers["Docker-Content-Digest"]
+                  Handler.tag_requests += 1
+                  self._send(json.dumps({"tag": {
+                      "imageId": "img_test",
+                      "manifestDigest": digest,
+                      "kind": "manifest",
+                      "status": "preparing" if Handler.tag_requests == 1 else "ready",
+                  }}).encode(), 200)
 
               def _send(self, resp, code):
                   self.send_response(code)
@@ -126,6 +168,49 @@ jobs:
           docker tag docker.io/library/busybox localhost:5000/acme/web/docker-image:latest
           docker push localhost:5000/acme/web/docker-image:latest
 
+      - name: Wait for optimization using an image reference
+        id: optimized
+        uses: ./wait-for-optimized-image
+        timeout-minutes: 2
+        env:
+          VERCEL_API_ORIGIN: http://127.0.0.1:8411
+        with:
+          image: vcr.vercel.com/acme/web/docker-image:latest
+          timeout-seconds: 60
+
+      - name: Wait for optimization using manual inputs
+        id: optimized-manual
+        uses: ./wait-for-optimized-image
+        timeout-minutes: 2
+        env:
+          VERCEL_API_ORIGIN: http://127.0.0.1:8411
+        with:
+          team: team_test
+          project: prj_test
+          repository: docker-image
+          tag: latest
+          timeout-seconds: 60
+
+      - name: Promote the local image and verify its digest
+        env:
+          DIGEST: ${{ steps.optimized.outputs.digest }}
+          IMAGE_ID: ${{ steps.optimized.outputs.image-id }}
+          MANUAL_DIGEST: ${{ steps.optimized-manual.outputs.digest }}
+          MANUAL_IMAGE_ID: ${{ steps.optimized-manual.outputs.image-id }}
+          IMAGE: localhost:5000/acme/web/docker-image
+        run: |
+          set -euo pipefail
+          [[ "$IMAGE_ID" == "img_test" ]]
+          [[ "$MANUAL_DIGEST" == "$DIGEST" ]]
+          [[ "$MANUAL_IMAGE_ID" == "$IMAGE_ID" ]]
+          docker tag "$IMAGE:latest" "$IMAGE:promoted"
+          docker push "$IMAGE:promoted"
+          promoted_digest=$(curl -fsSI -u team_test:s3cret \
+            -H 'Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json' \
+            "http://localhost:5000/v2/acme/web/docker-image/manifests/promoted" \
+            | tr -d '\r' | awk 'tolower($1) == "docker-content-digest:" {print $2}')
+          [[ "$promoted_digest" == "$DIGEST" ]]
+
       - name: Push with podman
         run: |
           podman pull docker.io/library/busybox
@@ -141,7 +226,7 @@ jobs:
           set -euxo pipefail
           for repo in docker-image podman-image buildah-image; do
             curl -fsu team_test:s3cret "http://localhost:5000/v2/acme/web/$repo/tags/list" \
-              | jq -e '.tags == ["latest"]'
+              | jq -e '.tags | index("latest") != null'
           done
 
       - name: Log in with an unknown engine (expect failure)
@@ -178,3 +263,14 @@ jobs:
       - name: Verify it failed
         run: |
           [[ "${{ steps.no-creds.outcome }}" == "failure" ]]
+
+      - name: Wait without OIDC permission (expect failure)
+        id: wait-no-creds
+        continue-on-error: true
+        uses: ./wait-for-optimized-image
+        with:
+          image: vcr.vercel.com/acme/web/docker-image:latest
+
+      - name: Verify waiting without credentials failed
+        run: |
+          [[ "${{ steps.wait-no-creds.outcome }}" == "failure" ]]

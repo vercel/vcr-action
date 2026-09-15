@@ -1,0 +1,58 @@
+name: "Wait for an optimized VCR image"
+description: "Wait for a pushed Vercel Container Registry image to be optimized before promoting its tag."
+author: "Vercel"
+branding:
+  icon: "clock"
+  color: "black"
+
+inputs:
+  image:
+    description: >-
+      Full tagged VCR image reference:
+      vcr.vercel.com/<team-slug>/<project-slug>/<repository>:<tag>.
+      Mutually exclusive with team, project, repository, and tag.
+    required: false
+  team:
+    description: >-
+      Vercel team ID (team_xxxxxxxx) or slug. Required with project, repository,
+      and tag when image is omitted. Cannot be combined with image.
+    required: false
+  project:
+    description: >-
+      Vercel project ID (prj_xxxxxxxx) or slug that owns the repository.
+      Required when image is omitted. Cannot be combined with image.
+    required: false
+  repository:
+    description: >-
+      VCR repository name or ID, without the registry, team, project, or tag.
+      Required when image is omitted. Cannot be combined with image.
+    required: false
+  tag:
+    description: >-
+      Tag of the pushed image to wait for. Use a unique tag for each build.
+      Required when image is omitted. Cannot be combined with image.
+    required: false
+  audience:
+    description: >-
+      Custom audience for the GitHub OIDC token, if your Vercel team's OIDC
+      policy defines one.
+    required: false
+  policy:
+    description: "OIDC policy ID to disambiguate between multiple matching policies."
+    required: false
+  timeout-seconds:
+    description: "Maximum time in seconds to wait for optimization (a positive whole number)."
+    required: false
+    default: "300"
+
+outputs:
+  digest:
+    description: "Manifest digest (sha256:...) of the optimized image, for retagging the exact image checked."
+  image-id:
+    description: "VCR image ID of the optimized image."
+
+runs:
+  using: "node24"
+  main: "dist/main.cjs"
+  post: "dist/post.cjs"
+  post-if: "always()"
