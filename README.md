@@ -39,8 +39,10 @@ Wait for a pushed image to be optimized before promoting its tag:
 ```
 
 Pass the same full `vcr.vercel.com/<team>/<project>/<repo>:<tag>` reference
-used by Docker. Alternatively, provide `team`, `project`, `repository`, and
-`tag` together; the two input modes are mutually exclusive.
+used by Docker, or `vcr.vercel.com/<team>/<project>/<repo>@sha256:<digest>`
+for an image that has no tag. Alternatively, provide `team`, `project`,
+`repository`, and `tag` or `digest` together; the two input modes are
+mutually exclusive.
 
 Uses GitHub OIDC (`id-token: write`) to obtain its own short-lived token and
 returns the optimized image's `digest` and `image-id`. Use a unique tag for

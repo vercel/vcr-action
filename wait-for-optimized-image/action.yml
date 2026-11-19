@@ -8,14 +8,15 @@ branding:
 inputs:
   image:
     description: >-
-      Full tagged VCR image reference:
-      vcr.vercel.com/<team-slug>/<project-slug>/<repository>:<tag>.
-      Mutually exclusive with team, project, repository, and tag.
+      Full VCR image reference, by tag or by digest:
+      vcr.vercel.com/<team-slug>/<project-slug>/<repository>:<tag> or
+      vcr.vercel.com/<team-slug>/<project-slug>/<repository>@sha256:<digest>.
+      Mutually exclusive with team, project, repository, tag, and digest.
     required: false
   team:
     description: >-
       Vercel team ID (team_xxxxxxxx) or slug. Required with project, repository,
-      and tag when image is omitted. Cannot be combined with image.
+      and tag or digest when image is omitted. Cannot be combined with image.
     required: false
   project:
     description: >-
@@ -30,7 +31,14 @@ inputs:
   tag:
     description: >-
       Tag of the pushed image to wait for. Use a unique tag for each build.
-      Required when image is omitted. Cannot be combined with image.
+      Required when image and digest are omitted. Cannot be combined with image
+      or digest.
+    required: false
+  digest:
+    description: >-
+      Manifest digest (sha256:...) of the image to wait for, in place of tag.
+      Use it for an image that has no tag of its own, such as one platform
+      inside an image index. Cannot be combined with image or tag.
     required: false
   audience:
     description: >-

@@ -137,9 +137,31 @@ describe("waitForOptimizedImage", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("rejects image indexes with a build hint", async () => {
+  it("rejects image indexes with a hint to wait for each image by digest", async () => {
     fetchMock.mockResolvedValueOnce(tagResponse({ kind: "index", status: null }));
-    await expect(waitForOptimizedImage(options)).rejects.toThrow(/no optimization status.*--provenance=false/);
+    await expect(waitForOptimizedImage(options)).rejects.toThrow(
+      /no optimization status.*by digest.*--provenance=false/,
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("looks an image up by digest and returns it when ready", async () => {
+    const { tag: _tag, ...target } = options;
+    fetchMock.mockResolvedValueOnce(Response.json({ image: { ...image, id: image.imageId } }));
+
+    await expect(waitForOptimizedImage({ ...target, digest })).resolves.toEqual(image);
+
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      `https://api.vercel.com/v1/vcr/repository/my-image/images/sha256%3A${"a".repeat(64)}?projectId=prj_123&teamId=team_123`,
+    );
+  });
+
+  it("rejects a build attestation immediately", async () => {
+    const { tag: _tag, ...target } = options;
+    fetchMock.mockResolvedValueOnce(
+      Response.json({ image: { ...image, id: image.imageId, kind: "attestation", status: "preparing" } }),
+    );
+    await expect(waitForOptimizedImage({ ...target, digest })).rejects.toThrow(/build attestation/);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 

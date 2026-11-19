@@ -160,3 +160,16 @@ it("marks the action failed without outputs when polling fails", async () => {
   expect(core.saveState).toHaveBeenCalledWith("accessToken", "wait-token");
   expect(core.setOutput).not.toHaveBeenCalled();
 });
+
+it("waits for an image referenced by digest", async () => {
+  inputs = { image: `vcr.vercel.com/acme/web/my-image@${image.manifestDigest}` };
+  await import("../src/wait-for-optimized-image/main");
+  await vi.waitFor(() => expect(core.setOutput).toHaveBeenCalledWith("digest", image.manifestDigest));
+  expect(waitForOptimizedImage).toHaveBeenCalledWith(expect.objectContaining({
+    team: "acme",
+    project: "web",
+    repository: "my-image",
+    digest: image.manifestDigest,
+  }));
+  expect(vi.mocked(waitForOptimizedImage).mock.calls[0][0]).not.toHaveProperty("tag");
+});

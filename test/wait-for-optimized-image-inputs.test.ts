@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { resolveImageInputs } from "../src/wait-for-optimized-image/inputs";
 
 const image = "vcr.vercel.com/acme/web/my-image:build-123";
+const digest = `sha256:${"a".repeat(64)}`;
 const manual = {
   team: "team_123",
   project: "prj_123",
@@ -29,6 +30,32 @@ describe("resolveImageInputs", () => {
       tag: "Release_1.2-rc1",
     });
   });
+
+  it("resolves an image referenced by digest", () => {
+    expect(resolveImageInputs({ image: `vcr.vercel.com/acme/web/my-image@${digest}` })).toEqual({
+      team: "acme",
+      project: "web",
+      repository: "my-image",
+      digest,
+    });
+  });
+
+  it("accepts a digest in place of the tag in manual mode", () => {
+    const { tag: _tag, ...target } = manual;
+    expect(resolveImageInputs({ ...target, digest })).toEqual({ ...target, digest });
+  });
+
+  it("rejects a tag combined with a digest", () => {
+    expect(() => resolveImageInputs({ ...manual, digest })).toThrow(/either 'tag' or 'digest', not both/);
+  });
+
+  it.each(["sha256:abcdef", "a".repeat(64), `sha512:${"a".repeat(64)}`])(
+    "rejects malformed digest %s",
+    (value) => {
+      const { tag: _tag, ...target } = manual;
+      expect(() => resolveImageInputs({ ...target, digest: value })).toThrow(/sha256:<64 hex characters>/);
+    },
+  );
 
   it("keeps the manual input mode, including repository IDs", () => {
     expect(resolveImageInputs(manual)).toEqual(manual);
