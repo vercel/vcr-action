@@ -137,11 +137,9 @@ describe("waitForOptimizedImage", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("rejects image indexes with a hint to wait for each image by digest", async () => {
+  it("rejects image indexes with a build hint", async () => {
     fetchMock.mockResolvedValueOnce(tagResponse({ kind: "index", status: null }));
-    await expect(waitForOptimizedImage(options)).rejects.toThrow(
-      /no optimization status.*by digest.*--provenance=false/,
-    );
+    await expect(waitForOptimizedImage(options)).rejects.toThrow(/no optimization status.*--provenance=false/);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -161,7 +159,7 @@ describe("waitForOptimizedImage", () => {
     fetchMock.mockResolvedValueOnce(
       Response.json({ image: { ...image, id: image.imageId, kind: "attestation", status: "preparing" } }),
     );
-    await expect(waitForOptimizedImage({ ...target, digest })).rejects.toThrow(/build attestation/);
+    await expect(waitForOptimizedImage({ ...target, digest })).rejects.toThrow(/kind=attestation/);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 

@@ -72,24 +72,23 @@ jobs:
 Choose exactly one mode:
 
 - **Image reference:** provide `image` only.
-- **Manual:** provide `team`, `project`, `repository`, and either `tag` or
-  `digest`.
+- **Manual:** provide `team`, `project`, `repository`, and either `tag` or `digest`.
 
 Combining `image` with any manual input, or supplying incomplete manual
 inputs, fails before authentication. `audience`, `policy`, and
 `timeout-seconds` work in either mode.
 
-| Name              | Required       | Default | Description                                                                                                                                       |
-| ----------------- | -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `image`           | in image mode  |         | Full `vcr.vercel.com/<team-slug>/<project-slug>/<repository>:<tag>` reference, or the same reference with `@sha256:<digest>` in place of the tag. |
-| `team`            | in manual mode |         | Vercel team ID (`team_...`) or slug.                                                                                                              |
-| `project`         | in manual mode |         | Vercel project ID (`prj_...`) or slug that owns the repository.                                                                                   |
-| `repository`      | in manual mode |         | Repository name or ID, without the registry, team, project, or tag.                                                                               |
-| `tag`             | in manual mode |         | Tag to wait for. Omit it when you set `digest`.                                                                                                   |
-| `digest`          | no             |         | Manifest digest (`sha256:...`) to wait for, in place of `tag`.                                                                                    |
-| `audience`        | no             |         | Custom OIDC audience, if your Vercel OIDC policy defines one.                                                                                     |
-| `policy`          | no             |         | OIDC policy ID, to disambiguate between multiple matching policies.                                                                               |
-| `timeout-seconds` | no             | `300`   | Positive whole number of seconds to poll after authentication, including status requests and retry delays.                                        |
+| Name              | Required       | Default | Description                                                                                                                                      |
+| ----------------- | -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `image`           | in image mode  |         | Full `vcr.vercel.com/<team-slug>/<project-slug>/<repository>:<tag>` reference. Use `@sha256:<digest>` in place of `:<tag>` to wait by digest.    |
+| `team`            | in manual mode |         | Vercel team ID (`team_...`) or slug.                                                                                                             |
+| `project`         | in manual mode |         | Vercel project ID (`prj_...`) or slug that owns the repository.                                                                                  |
+| `repository`      | in manual mode |         | Repository name or ID, without the registry, team, project, or tag.                                                                              |
+| `tag`             | in manual mode |         | Tag to wait for.                                                                                                                                 |
+| `digest`          | no             |         | Manifest digest (`sha256:...`) to wait for, in place of `tag`.                                                                                   |
+| `audience`        | no             |         | Custom OIDC audience, if your Vercel OIDC policy defines one.                                                                                    |
+| `policy`          | no             |         | OIDC policy ID, to disambiguate between multiple matching policies.                                                                              |
+| `timeout-seconds` | no             | `300`   | Positive whole number of seconds to poll after authentication, including status requests and retry delays.                                       |
 
 The existing manual form remains supported:
 
@@ -103,31 +102,15 @@ The existing manual form remains supported:
     timeout-seconds: 600
 ```
 
-## Wait for an image by digest
-
-An image index has no optimization status. VCR optimizes each platform image
-in the index, and those images have no tag. To wait for one of them, pass its
-digest:
+An image index has no optimization status, and the platform images in it
+have no tag. To wait for one of them, pass its digest:
 
 ```yaml
-- name: Build and push by digest
-  id: build
-  uses: docker/build-push-action@v6
-  with:
-    platforms: ${{ matrix.platform }}
-    provenance: false
-    sbom: false
-    outputs: type=image,name=${{ env.REPOSITORY }},push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=true
-
 - uses: vercel/vcr-action/wait-for-optimized-image@v1
   with:
-    image: ${{ env.REPOSITORY }}@${{ steps.build.outputs.digest }}
+    image: vcr.vercel.com/<team-slug>/<project-slug>/my-image@${{ steps.build.outputs.digest }}
     timeout-seconds: 600
 ```
-
-For an index that is already pushed, list the digests of its platform images
-with `docker buildx imagetools inspect`, then wait for each one. A build
-attestation in the index is not an image, and VCR never optimizes it.
 
 The wait action obtains its own short-lived Vercel access token using
 GitHub OIDC. Give the job `id-token: write` permission and configure a VCR
@@ -149,10 +132,9 @@ other non-retryable API errors, malformed responses, unexpected statuses,
 and images that cannot be optimized:
 
 - `unoptimized`: build for `linux/amd64`.
-- `null` status or an image index: wait for each platform image by digest,
-  or push a single-platform manifest with provenance and SBOM attestations
-  disabled, as in the example above.
-- A build attestation: pass the digest of a platform image.
+- `null` status, an image index, or a build attestation: wait for a platform
+  image by digest, or push a single-platform manifest with provenance and
+  SBOM attestations disabled, as in the example above.
 
 GitHub also supports a step-level
 [`timeout-minutes`](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idsteps-timeout-minutes)

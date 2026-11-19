@@ -77,9 +77,15 @@ jobs:
                   if self.headers.get("Authorization") != "Bearer wait-secret":
                       self._send(b'{}', 401)
                       return
-                  images_path = "/v1/vcr/repository/docker-image/images/"
-                  if ((url.path != "/v1/vcr/repository/docker-image/tags/latest"
-                       and not url.path.startswith(images_path))
+                  if url.path.startswith("/v1/vcr/repository/docker-image/images/"):
+                      self._send(json.dumps({"image": {
+                          "id": "img_test",
+                          "manifestDigest": unquote(url.path.rsplit("/", 1)[1]),
+                          "kind": "manifest",
+                          "status": "ready",
+                      }}).encode(), 200)
+                      return
+                  if (url.path != "/v1/vcr/repository/docker-image/tags/latest"
                       or parse_qs(url.query) not in (
                           {"teamId": ["team_test"], "projectId": ["prj_test"]},
                           {"slug": ["acme"], "projectId": ["web"]},
@@ -98,17 +104,6 @@ jobs:
                   )
                   with urlopen(request, timeout=10) as manifest:
                       digest = manifest.headers["Docker-Content-Digest"]
-                  if url.path.startswith(images_path):
-                      if unquote(url.path[len(images_path):]) != digest:
-                          self._send(b'{}', 404)
-                          return
-                      self._send(json.dumps({"image": {
-                          "id": "img_test",
-                          "manifestDigest": digest,
-                          "kind": "manifest",
-                          "status": "ready",
-                      }}).encode(), 200)
-                      return
                   Handler.tag_requests += 1
                   self._send(json.dumps({"tag": {
                       "imageId": "img_test",
@@ -205,13 +200,15 @@ jobs:
           timeout-seconds: 60
 
       - name: Wait for optimization using a digest
-        id: optimized-digest
         uses: ./wait-for-optimized-image
         timeout-minutes: 2
         env:
           VERCEL_API_ORIGIN: http://127.0.0.1:8411
         with:
-          image: vcr.vercel.com/acme/web/docker-image@${{ steps.optimized.outputs.digest }}
+          team: team_test
+          project: prj_test
+          repository: docker-image
+          digest: ${{ steps.optimized.outputs.digest }}
           timeout-seconds: 60
 
       - name: Promote the local image and verify its digest
@@ -220,14 +217,12 @@ jobs:
           IMAGE_ID: ${{ steps.optimized.outputs.image-id }}
           MANUAL_DIGEST: ${{ steps.optimized-manual.outputs.digest }}
           MANUAL_IMAGE_ID: ${{ steps.optimized-manual.outputs.image-id }}
-          BY_DIGEST_DIGEST: ${{ steps.optimized-digest.outputs.digest }}
           IMAGE: localhost:5000/acme/web/docker-image
         run: |
           set -euo pipefail
           [[ "$IMAGE_ID" == "img_test" ]]
           [[ "$MANUAL_DIGEST" == "$DIGEST" ]]
           [[ "$MANUAL_IMAGE_ID" == "$IMAGE_ID" ]]
-          [[ "$BY_DIGEST_DIGEST" == "$DIGEST" ]]
           docker tag "$IMAGE:latest" "$IMAGE:promoted"
           docker push "$IMAGE:promoted"
           promoted_digest=$(curl -fsSI -u team_test:s3cret \

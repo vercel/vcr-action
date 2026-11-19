@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import { getAccessToken } from "../auth";
 import { DEFAULT_VERCEL_API } from "../lib";
-import { resolveImageInputs } from "./inputs";
+import { formatImageReference, resolveImageInputs } from "./inputs";
 import { parseTimeoutSeconds, waitForOptimizedImage } from "./wait";
 
 async function main(): Promise<void> {
@@ -13,10 +13,7 @@ async function main(): Promise<void> {
     tag: core.getInput("tag"),
     digest: core.getInput("digest"),
   });
-  const reference =
-    target.digest === undefined
-      ? `${target.repository}:${target.tag}`
-      : `${target.repository}@${target.digest}`;
+  const reference = formatImageReference(target);
   const timeoutSeconds = parseTimeoutSeconds(core.getInput("timeout-seconds"));
   const vercelApi = process.env.VERCEL_API_ORIGIN || DEFAULT_VERCEL_API;
   const token = await getAccessToken({
@@ -30,9 +27,9 @@ async function main(): Promise<void> {
 
   core.info(`Waiting up to ${timeoutSeconds}s for ${reference} to be optimized.`);
   const image = await waitForOptimizedImage({
-    ...target,
     vercelApi,
     token,
+    ...target,
     timeoutSeconds,
     onProgress: core.info,
   });
