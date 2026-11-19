@@ -11,7 +11,7 @@ inputs:
       Full tagged VCR image reference:
       vcr.vercel.com/<team-slug>/<project-slug>/<repository>:<tag>.
       Use @sha256:<digest> in place of :<tag> to wait for an image by digest.
-      Mutually exclusive with team, project, repository, tag, and digest.
+      Mutually exclusive with team, project, repository, and tag.
     required: false
   team:
     description: >-
@@ -32,11 +32,6 @@ inputs:
     description: >-
       Tag of the pushed image to wait for. Use a unique tag for each build.
       Required when image is omitted. Cannot be combined with image.
-    required: false
-  digest:
-    description: >-
-      Manifest digest (sha256:...) of the image to wait for, in place of tag.
-      Cannot be combined with image or tag.
     required: false
   audience:
     description: >-

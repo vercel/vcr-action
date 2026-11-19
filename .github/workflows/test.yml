@@ -205,10 +205,7 @@ jobs:
         env:
           VERCEL_API_ORIGIN: http://127.0.0.1:8411
         with:
-          team: team_test
-          project: prj_test
-          repository: docker-image
-          digest: ${{ steps.optimized.outputs.digest }}
+          image: vcr.vercel.com/acme/web/docker-image@${{ steps.optimized.outputs.digest }}
           timeout-seconds: 60
 
       - name: Promote the local image and verify its digest

@@ -40,18 +40,6 @@ describe("resolveImageInputs", () => {
     });
   });
 
-  it("rejects a tag combined with a digest", () => {
-    expect(() => resolveImageInputs({ ...manual, digest: `sha256:${"a".repeat(64)}` })).toThrow(
-      /either 'tag' or 'digest', not both/,
-    );
-  });
-
-  it("rejects a malformed digest", () => {
-    expect(() => resolveImageInputs({ ...manual, tag: "", digest: "sha256:abcdef" })).toThrow(
-      /sha256:<64 hex characters>/,
-    );
-  });
-
   it("keeps the manual input mode, including repository IDs", () => {
     expect(resolveImageInputs(manual)).toEqual(manual);
   });

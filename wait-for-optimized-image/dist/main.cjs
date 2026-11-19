@@ -20235,30 +20235,22 @@ function resolveImageInputs(inputs) {
     repository: inputs.repository?.trim() || "",
     tag: inputs.tag?.trim() || ""
   };
-  const digest = inputs.digest?.trim() || "";
   const supplied = Object.entries(manual).filter(([, value]) => value);
   if (image) {
-    if (supplied.length > 0 || digest) {
+    if (supplied.length > 0) {
       throw new Error(
-        "The 'image' input is mutually exclusive with 'team', 'project', 'repository', 'tag', and 'digest'. Provide only one input mode."
+        "The 'image' input is mutually exclusive with 'team', 'project', 'repository', and 'tag'. Provide only one input mode."
       );
     }
     return parseImageReference(image);
   }
-  if (digest && manual.tag) {
-    throw new Error("Provide either 'tag' or 'digest', not both.");
-  }
-  if (digest && !DIGEST_PATTERN.test(digest)) {
-    throw new Error("The 'digest' input must be in the form sha256:<64 hex characters>.");
-  }
-  const missing = Object.entries(manual).filter(([name, value]) => !value && !(digest && name === "tag")).map(([name]) => `'${name}'`);
+  const missing = Object.entries(manual).filter(([, value]) => !value).map(([name]) => `'${name}'`);
   if (missing.length > 0) {
     throw new Error(
       `Provide either 'image' or all of 'team', 'project', 'repository', and 'tag'. Missing manual inputs: ${missing.join(", ")}.`
     );
   }
-  const { tag, ...target } = manual;
-  return digest ? { ...target, digest } : manual;
+  return manual;
 }
 function parseImageReference(image) {
   const [registry, team, project, reference, ...extra] = image.split("/");
@@ -20365,7 +20357,7 @@ async function getTag(url, token, remainingMs) {
     );
   }
   if (response.status === 404) {
-    return { retry: "image not found (HTTP 404); check the team, project, repository, and tag or digest if this persists" };
+    return { retry: "image tag not found (HTTP 404); check the team, project, repository, and tag if this persists" };
   }
   if (response.status === 408 || response.status === 429 || response.status >= 500) {
     return { retry: `VCR status request failed (HTTP ${response.status})` };
@@ -20393,8 +20385,7 @@ async function main() {
     team: getInput("team"),
     project: getInput("project"),
     repository: getInput("repository"),
-    tag: getInput("tag"),
-    digest: getInput("digest")
+    tag: getInput("tag")
   });
   const reference = formatImageReference(target);
   const timeoutSeconds = parseTimeoutSeconds(getInput("timeout-seconds"));

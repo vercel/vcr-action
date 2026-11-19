@@ -72,7 +72,7 @@ jobs:
 Choose exactly one mode:
 
 - **Image reference:** provide `image` only.
-- **Manual:** provide `team`, `project`, `repository`, and either `tag` or `digest`.
+- **Manual:** provide all four of `team`, `project`, `repository`, and `tag`.
 
 Combining `image` with any manual input, or supplying incomplete manual
 inputs, fails before authentication. `audience`, `policy`, and
@@ -85,7 +85,6 @@ inputs, fails before authentication. `audience`, `policy`, and
 | `project`         | in manual mode |         | Vercel project ID (`prj_...`) or slug that owns the repository.                                                                                  |
 | `repository`      | in manual mode |         | Repository name or ID, without the registry, team, project, or tag.                                                                              |
 | `tag`             | in manual mode |         | Tag to wait for.                                                                                                                                 |
-| `digest`          | no             |         | Manifest digest (`sha256:...`) to wait for, in place of `tag`.                                                                                   |
 | `audience`        | no             |         | Custom OIDC audience, if your Vercel OIDC policy defines one.                                                                                    |
 | `policy`          | no             |         | OIDC policy ID, to disambiguate between multiple matching policies.                                                                              |
 | `timeout-seconds` | no             | `300`   | Positive whole number of seconds to poll after authentication, including status requests and retry delays.                                       |
