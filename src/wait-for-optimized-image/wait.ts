@@ -1,3 +1,5 @@
+import { formatImageReference, type ImageTarget } from "./inputs";
+
 const POLL_INTERVAL_MS = 5_000;
 const REQUEST_TIMEOUT_MS = 30_000;
 
@@ -8,16 +10,12 @@ interface VcrTag {
   status: string | null;
 }
 
-interface WaitOptions {
+type WaitOptions = ImageTarget & {
   vercelApi: string;
   token: string;
-  team: string;
-  project: string;
-  repository: string;
-  tag: string;
   timeoutSeconds: number;
   onProgress: (message: string) => void;
-}
+};
 
 export function parseTimeoutSeconds(input: string): number {
   const seconds = Number(input || "300");
@@ -29,13 +27,16 @@ export function parseTimeoutSeconds(input: string): number {
 
 export async function waitForOptimizedImage(options: WaitOptions): Promise<VcrTag> {
   const url = new URL(
-    `/v1/vcr/repository/${encodeURIComponent(options.repository)}/tags/${encodeURIComponent(options.tag)}`,
+    `/v1/vcr/repository/${encodeURIComponent(options.repository)}/` +
+      (options.digest === undefined
+        ? `tags/${encodeURIComponent(options.tag)}`
+        : `images/${encodeURIComponent(options.digest)}`),
     options.vercelApi,
   );
   url.searchParams.set("projectId", options.project);
   url.searchParams.set(options.team.startsWith("team_") ? "teamId" : "slug", options.team);
 
-  const reference = `${options.repository}:${options.tag}`;
+  const reference = formatImageReference(options);
   const deadline = Date.now() + options.timeoutSeconds * 1_000;
   let lastStatus = "not checked";
   let digest: string | undefined;
@@ -56,10 +57,11 @@ export async function waitForOptimizedImage(options: WaitOptions): Promise<VcrTa
       }
       digest = image.manifestDigest;
 
-      if (image.kind === "index" || image.status === null) {
+      if (image.kind === "index" || image.kind === "attestation" || image.status === null) {
         throw new Error(
           `Image ${reference} has no optimization status (kind=${image.kind}). ` +
-            "Push a single-platform linux/amd64 image, with provenance and SBOM attestations disabled " +
+            "Wait for a platform image by digest, or push a single-platform linux/amd64 image, " +
+            "with provenance and SBOM attestations disabled " +
             "(--provenance=false --sbom=false), instead of an image index.",
         );
       }
@@ -139,7 +141,11 @@ async function getTag(
 }
 
 function parseTag(body: unknown): VcrTag {
-  const tag = body && typeof body === "object" && "tag" in body ? body.tag : undefined;
+  const image = body && typeof body === "object" && "image" in body ? body.image : undefined;
+  const tag =
+    image && typeof image === "object" && "id" in image
+      ? { ...image, imageId: image.id }
+      : body && typeof body === "object" && "tag" in body ? body.tag : undefined;
   if (
     !tag || typeof tag !== "object" ||
     !("imageId" in tag) || typeof tag.imageId !== "string" || !tag.imageId ||
