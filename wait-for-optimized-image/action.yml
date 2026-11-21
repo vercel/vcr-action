@@ -10,6 +10,7 @@ inputs:
     description: >-
       Full tagged VCR image reference:
       vcr.vercel.com/<team-slug>/<project-slug>/<repository>:<tag>.
+      Use @sha256:<digest> in place of :<tag> to wait for an image by digest.
       Mutually exclusive with team, project, repository, and tag.
     required: false
   team:

@@ -143,6 +143,26 @@ describe("waitForOptimizedImage", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("looks an image up by digest and returns it when ready", async () => {
+    const { tag: _tag, ...target } = options;
+    fetchMock.mockResolvedValueOnce(Response.json({ image: { ...image, id: image.imageId } }));
+
+    await expect(waitForOptimizedImage({ ...target, digest })).resolves.toEqual(image);
+
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      `https://api.vercel.com/v1/vcr/repository/my-image/images/sha256%3A${"a".repeat(64)}?projectId=prj_123&teamId=team_123`,
+    );
+  });
+
+  it("rejects a build attestation immediately", async () => {
+    const { tag: _tag, ...target } = options;
+    fetchMock.mockResolvedValueOnce(
+      Response.json({ image: { ...image, id: image.imageId, kind: "attestation", status: "preparing" } }),
+    );
+    await expect(waitForOptimizedImage({ ...target, digest })).rejects.toThrow(/kind=attestation/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it.each(["failed", "unknown"])("rejects an unexpected status (%s)", async (status) => {
     fetchMock.mockResolvedValueOnce(tagResponse({ status }));
     await expect(waitForOptimizedImage(options)).rejects.toThrow(/unexpected optimization status/);

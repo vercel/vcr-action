@@ -30,6 +30,16 @@ describe("resolveImageInputs", () => {
     });
   });
 
+  it("resolves an image referenced by digest", () => {
+    const digest = `sha256:${"a".repeat(64)}`;
+    expect(resolveImageInputs({ image: `vcr.vercel.com/acme/web/my-image@${digest}` })).toEqual({
+      team: "acme",
+      project: "web",
+      repository: "my-image",
+      digest,
+    });
+  });
+
   it("keeps the manual input mode, including repository IDs", () => {
     expect(resolveImageInputs(manual)).toEqual(manual);
   });

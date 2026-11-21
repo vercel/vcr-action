@@ -20223,6 +20223,10 @@ function sleep(ms) {
 var SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/;
 var REPOSITORY_PATTERN = /^[a-z0-9]+(?:(?:\.|_|__|-+)[a-z0-9]+)*$/;
 var TAG_PATTERN = /^[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}$/;
+var DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/;
+function formatImageReference(target) {
+  return target.digest === void 0 ? `${target.repository}:${target.tag}` : `${target.repository}@${target.digest}`;
+}
 function resolveImageInputs(inputs) {
   const image = inputs.image?.trim();
   const manual = {
@@ -20250,13 +20254,14 @@ function resolveImageInputs(inputs) {
 }
 function parseImageReference(image) {
   const [registry, team, project, reference, ...extra] = image.split("/");
-  const [repository, tag, ...extraTagParts] = (reference || "").split(":");
-  if (registry !== DEFAULT_REGISTRY || !team || !SLUG_PATTERN.test(team) || !project || !SLUG_PATTERN.test(project) || !repository || !REPOSITORY_PATTERN.test(repository) || !tag || !TAG_PATTERN.test(tag) || `${team}/${project}/${repository}`.length > 255 || extra.length > 0 || extraTagParts.length > 0) {
+  const [name, digest, ...extraDigestParts] = (reference || "").split("@");
+  const [repository, tag, ...extraTagParts] = name.split(":");
+  if (registry !== DEFAULT_REGISTRY || !team || !SLUG_PATTERN.test(team) || !project || !SLUG_PATTERN.test(project) || !repository || !REPOSITORY_PATTERN.test(repository) || (digest === void 0 ? !tag || !TAG_PATTERN.test(tag) : tag !== void 0 || !DIGEST_PATTERN.test(digest)) || `${team}/${project}/${repository}`.length > 255 || extra.length > 0 || extraTagParts.length > 0 || extraDigestParts.length > 0) {
     throw new Error(
-      `The 'image' input must be a tagged VCR image in the form ${DEFAULT_REGISTRY}/<team-slug>/<project-slug>/<repository>:<tag>.`
+      `The 'image' input must be a tagged VCR image in the form ${DEFAULT_REGISTRY}/<team-slug>/<project-slug>/<repository>:<tag>, or the same form with @sha256:<digest> in place of the tag.`
     );
   }
-  return { team, project, repository, tag };
+  return digest === void 0 ? { team, project, repository, tag } : { team, project, repository, digest };
 }
 
 // src/wait-for-optimized-image/wait.ts
@@ -20271,12 +20276,12 @@ function parseTimeoutSeconds(input) {
 }
 async function waitForOptimizedImage(options) {
   const url = new URL(
-    `/v1/vcr/repository/${encodeURIComponent(options.repository)}/tags/${encodeURIComponent(options.tag)}`,
+    `/v1/vcr/repository/${encodeURIComponent(options.repository)}/` + (options.digest === void 0 ? `tags/${encodeURIComponent(options.tag)}` : `images/${encodeURIComponent(options.digest)}`),
     options.vercelApi
   );
   url.searchParams.set("projectId", options.project);
   url.searchParams.set(options.team.startsWith("team_") ? "teamId" : "slug", options.team);
-  const reference = `${options.repository}:${options.tag}`;
+  const reference = formatImageReference(options);
   const deadline = Date.now() + options.timeoutSeconds * 1e3;
   let lastStatus = "not checked";
   let digest;
@@ -20293,9 +20298,9 @@ async function waitForOptimizedImage(options) {
         );
       }
       digest = image.manifestDigest;
-      if (image.kind === "index" || image.status === null) {
+      if (image.kind === "index" || image.kind === "attestation" || image.status === null) {
         throw new Error(
-          `Image ${reference} has no optimization status (kind=${image.kind}). Push a single-platform linux/amd64 image, with provenance and SBOM attestations disabled (--provenance=false --sbom=false), instead of an image index.`
+          `Image ${reference} has no optimization status (kind=${image.kind}). Wait for a platform image by digest, or push a single-platform linux/amd64 image, with provenance and SBOM attestations disabled (--provenance=false --sbom=false), instead of an image index.`
         );
       }
       switch (image.status) {
@@ -20360,7 +20365,8 @@ async function getTag(url, token, remainingMs) {
   throw new Error(`VCR status request failed (HTTP ${response.status}).`);
 }
 function parseTag(body) {
-  const tag = body && typeof body === "object" && "tag" in body ? body.tag : void 0;
+  const image = body && typeof body === "object" && "image" in body ? body.image : void 0;
+  const tag = image && typeof image === "object" && "id" in image ? { ...image, imageId: image.id } : body && typeof body === "object" && "tag" in body ? body.tag : void 0;
   if (!tag || typeof tag !== "object" || !("imageId" in tag) || typeof tag.imageId !== "string" || !tag.imageId || !("manifestDigest" in tag) || typeof tag.manifestDigest !== "string" || !/^sha256:[a-f0-9]{64}$/.test(tag.manifestDigest) || !("kind" in tag) || typeof tag.kind !== "string" || !("status" in tag) || tag.status !== null && typeof tag.status !== "string") {
     throw new Error("VCR returned an invalid tag response while checking image optimization.");
   }
@@ -20374,37 +20380,35 @@ function parseTag(body) {
 
 // src/wait-for-optimized-image/main.ts
 async function main() {
-  const { team, project, repository, tag } = resolveImageInputs({
+  const target = resolveImageInputs({
     image: getInput("image"),
     team: getInput("team"),
     project: getInput("project"),
     repository: getInput("repository"),
     tag: getInput("tag")
   });
+  const reference = formatImageReference(target);
   const timeoutSeconds = parseTimeoutSeconds(getInput("timeout-seconds"));
   const vercelApi = process.env.VERCEL_API_ORIGIN || DEFAULT_VERCEL_API;
   const token = await getAccessToken({
     vercelApi,
-    team,
+    team: target.team,
     audience: getInput("audience"),
     policy: getInput("policy")
   });
   setSecret(token);
   saveState("accessToken", token);
-  info(`Waiting up to ${timeoutSeconds}s for ${repository}:${tag} to be optimized.`);
+  info(`Waiting up to ${timeoutSeconds}s for ${reference} to be optimized.`);
   const image = await waitForOptimizedImage({
     vercelApi,
     token,
-    team,
-    project,
-    repository,
-    tag,
+    ...target,
     timeoutSeconds,
     onProgress: info
   });
   setOutput("digest", image.manifestDigest);
   setOutput("image-id", image.imageId);
-  info(`${repository}:${tag} is optimized (${image.manifestDigest}).`);
+  info(`${reference} is optimized (${image.manifestDigest}).`);
 }
 main().catch((error2) => {
   setFailed(error2 instanceof Error ? error2.message : String(error2));

@@ -52,7 +52,7 @@ jobs:
           import base64
           import json
           from http.server import BaseHTTPRequestHandler, HTTPServer
-          from urllib.parse import parse_qs, urlsplit
+          from urllib.parse import parse_qs, unquote, urlsplit
           from urllib.request import Request, urlopen
 
           class Handler(BaseHTTPRequestHandler):
@@ -76,6 +76,14 @@ jobs:
                   url = urlsplit(self.path)
                   if self.headers.get("Authorization") != "Bearer wait-secret":
                       self._send(b'{}', 401)
+                      return
+                  if url.path.startswith("/v1/vcr/repository/docker-image/images/"):
+                      self._send(json.dumps({"image": {
+                          "id": "img_test",
+                          "manifestDigest": unquote(url.path.rsplit("/", 1)[1]),
+                          "kind": "manifest",
+                          "status": "ready",
+                      }}).encode(), 200)
                       return
                   if (url.path != "/v1/vcr/repository/docker-image/tags/latest"
                       or parse_qs(url.query) not in (
@@ -189,6 +197,15 @@ jobs:
           project: prj_test
           repository: docker-image
           tag: latest
+          timeout-seconds: 60
+
+      - name: Wait for optimization using a digest
+        uses: ./wait-for-optimized-image
+        timeout-minutes: 2
+        env:
+          VERCEL_API_ORIGIN: http://127.0.0.1:8411
+        with:
+          image: vcr.vercel.com/acme/web/docker-image@${{ steps.optimized.outputs.digest }}
           timeout-seconds: 60
 
       - name: Promote the local image and verify its digest

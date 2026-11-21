@@ -80,7 +80,7 @@ inputs, fails before authentication. `audience`, `policy`, and
 
 | Name              | Required       | Default | Description                                                                                                                                      |
 | ----------------- | -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `image`           | in image mode  |         | Full `vcr.vercel.com/<team-slug>/<project-slug>/<repository>:<tag>` reference. An explicit tag is required; digest references are not supported. |
+| `image`           | in image mode  |         | Full `vcr.vercel.com/<team-slug>/<project-slug>/<repository>:<tag>` reference. Use `@sha256:<digest>` in place of `:<tag>` to wait by digest.    |
 | `team`            | in manual mode |         | Vercel team ID (`team_...`) or slug.                                                                                                             |
 | `project`         | in manual mode |         | Vercel project ID (`prj_...`) or slug that owns the repository.                                                                                  |
 | `repository`      | in manual mode |         | Repository name or ID, without the registry, team, project, or tag.                                                                              |
@@ -98,6 +98,16 @@ The existing manual form remains supported:
     project: ${{ vars.VERCEL_PROJECT_ID }}
     repository: my-image
     tag: ci-${{ github.run_id }}-${{ github.run_attempt }}
+    timeout-seconds: 600
+```
+
+An image index has no optimization status, and the platform images in it
+have no tag. To wait for one of them, pass its digest:
+
+```yaml
+- uses: vercel/vcr-action/wait-for-optimized-image@v1
+  with:
+    image: vcr.vercel.com/<team-slug>/<project-slug>/my-image@${{ steps.build.outputs.digest }}
     timeout-seconds: 600
 ```
 
@@ -121,8 +131,9 @@ other non-retryable API errors, malformed responses, unexpected statuses,
 and images that cannot be optimized:
 
 - `unoptimized`: build for `linux/amd64`.
-- `null` status or an image index: push a single-platform manifest with
-  provenance and SBOM attestations disabled, as in the example above.
+- `null` status, an image index, or a build attestation: wait for a platform
+  image by digest, or push a single-platform manifest with provenance and
+  SBOM attestations disabled, as in the example above.
 
 GitHub also supports a step-level
 [`timeout-minutes`](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idsteps-timeout-minutes)
